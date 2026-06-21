@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Value Campus</title>
+  <style>
+    :root {
+      --bg: #101820;
+      --ink: #152313;
+      --screen: #8dae4e;
+      --screen2: #a8bf66;
+      --dark: #263d21;
+      --mid: #5f7d36;
+      --light: #d4df84;
+      --panel: #c6d375;
+      --warn: #8d345a;
+      --paper: #f2efca;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, #101820, #1c2740 55%, #111722),
+        #101820;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding: 14px;
+    }
+
+    .wrap {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: minmax(320px, 640px) minmax(250px, 320px);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .game, .side {
+      background: #d9d3aa;
+      border: 4px solid #f6f1ca;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 24px 60px #0009, inset -5px -5px 0 #0002, inset 4px 4px 0 #fff6;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #4e4a53;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .viewport {
+      position: relative;
+      background: #2a3038;
+      border: 5px solid #30303b;
+      border-radius: 8px;
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      image-rendering: pixelated;
+      background: var(--screen);
+      border: 4px solid #182814;
+    }
+
+    .dialog {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      min-height: 116px;
+      background: var(--paper);
+      border: 4px solid var(--dark);
+      padding: 10px;
+      box-shadow: 5px 5px 0 #0004;
+      display: none;
+    }
+
+    .dialog.show { display: block; }
+
+    .speaker {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--warn);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .text {
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+      min-height: 38px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    button {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      border: 3px solid var(--dark);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 8px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #0002;
+    }
+
+    button:hover, button:focus {
+      outline: none;
+      background: var(--light);
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0 #0002;
+    }
+
+    h1, h2, p { margin: 0; }
+    h1 {
+      font-size: 20px;
+      line-height: 1.1;
+      text-transform: uppercase;
+      color: var(--dark);
+    }
+    h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      border-bottom: 3px solid var(--dark);
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+    }
+    p, li {
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 3px solid var(--dark);
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 4px 4px 0 #0002;
+    }
+
+    .badges, .keys {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge, .key {
+      border: 2px solid var(--dark);
+      background: #b5c56a;
+      padding: 5px 6px;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .badge.done {
+      background: var(--light);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 38px);
+      gap: 5px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .controls button {
+      text-align: center;
+      padding: 0;
+    }
+
+    .controls .up { grid-column: 2; grid-row: 1; }
+    .controls .left { grid-column: 1; grid-row: 2; }
+    .controls .talk { grid-column: 2; grid-row: 2; background: #d7c36d; }
+    .controls .right { grid-column: 3; grid-row: 2; }
+    .controls .down { grid-column: 2; grid-row: 3; }
+
+    .toast {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--paper);
+      border: 3px solid var(--dark);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      display: none;
+      box-shadow: 4px 4px 0 #0004;
+    }
+
+    .toast.show { display: block; }
+
+    @media (max-width: 820px) {
+      body { place-items: start center; }
+      .wrap { grid-template-columns: 1fr; }
+      .side { order: 2; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="game">
+      <div class="topbar">
+        <span>AI Value Campus</span>
+        <span id="xp">XP 0</span>
+      </div>
+      <div class="viewport">
+        <canvas id="world" width="640" height="440" aria-label="2D AI Value Campus world"></canvas>
+        <div class="toast" id="toast">Talk</div>
+        <div class="dialog" id="dialog">
+          <div class="speaker" id="speaker"></div>
+          <div class="text" id="dialogText"></div>
+          <div class="choices" id="choices"></div>
+        </div>
+      </div>
+      <div class="controls" aria-label="Touch controls">
+        <button class="up" data-move="up">Up</button>
+        <button class="left" data-move="left">Left</button>
+        <button class="talk" id="talkBtn">Talk</button>
+        <button class="right" data-move="right">Right</button>
+        <button class="down" data-move="down">Down</button>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <h1>Campus Quest</h1>
+        <p>Walk around, talk to NPCs, learn the lecture logic, solve their cases, and collect badges. The final exam gate opens when you understand the core framework.</p>
+      </div>
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="keys">
+          <span class="key">WASD</span>
+          <span class="key">Arrows</span>
+          <span class="key">E / Space</span>
+          <span class="key">Tap buttons</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Badges</h2>
+        <div class="badges" id="badges"></div>
+      </div>
+      <div class="card">
+        <h2>Current Hint</h2>
+        <p id="hint">Start at Strategy Hall. The professor teaches the BCG framework.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("world");
+    const ctx = canvas.getContext("2d");
+    const dialog = document.getElementById("dialog");
+    const speaker = document.getElementById("speaker");
+    const dialogText = document.getElementById("dialogText");
+    const choices = document.getElementById("choices");
+    const toast = document.getElementById("toast");
+    const badgesEl = document.getElementById("badges");
+    const hint = document.getElementById("hint");
+    const xpEl = document.getElementById("xp");
+
+    const tile = 40;
+    const map = [
+      "################",
+      "#..............#",
+      "#..S.....P.....#",
+      "#..............#",
+      "#......###.....#",
+      "#..G...#F#..A..#",
+      "#......###.....#",
+      "#..............#",
+      "#..T.......E...#",
+      "#..............#",
+      "################"
+    ];
+
+    const save = JSON.parse(localStorage.getItem("aiValueCampusSave") || "null") || {
+      x: 2,
+      y: 8,
+      xp: 0,
+      badges: {},
+      talked: {}
+    };
+
+    const player = { x: save.x, y: save.y, face: "down" };
+    let activeNpc = null;
+    let dialogOpen = false;
+    let dialogPage = 0;
+
+    const npcs = {
+      S: {
+        id: "strategy",
+        name: "Prof. Strategy",
+        badge: "Framework",
+        color: "#2f4a23",
+        pages: [
+          "Welcome to Strategy Hall. The exam backbone is the BCG AI framework.",
+          "Memorize the six dimensions: GenAI Ambition, Potential, Platform, Operating Model, People, Policy.",
+          "The key lesson: AI value is not just having models. Value appears when process redesign, adoption, governance, platform, and P&L measurement work together."
+        ],
+        challenge: {
+          prompt: "Case: a company has many AI demos but no EBIT impact. What is the real missing piece?",
+          options: [
+            ["A bigger model", 0, "No. Model size is not the main bottleneck."],
+            ["Execution to P&L through process redesign and ownership", 2, "Correct. This is the money-maker logic."],
+            ["More pilots", 0, "No. More pilots deepen the trap."],
+            ["Ignore people adoption", 0, "No. People adoption is part of value creation."]
+          ]
+        }
+      },
+      P: {
+        id: "platform",
+        name: "BMW Platform Lead",
+        badge: "Platform",
+        color: "#4d6b2f",
+        pages: [
+          "Platform Lab teaches the BMW logic: scale needs a shared backbone.",
+          "BMW's AI story is not one isolated chatbot. It is data, assistants, customized agents, security by design, compliance, and shared entry points.",
+          "If every department builds separately, adoption slows and governance repeats from scratch."
+        ],
+        challenge: {
+          prompt: "Case: every department uses different AI tools, data is messy, and reviews repeat. Best fix?",
+          options: [
+            ["Let teams keep choosing tools independently", 0, "That preserves fragmentation."],
+            ["Build a shared AI/data platform with security, compliant access, and reusable services", 2, "Correct. That is platform scaling."],
+            ["Only train prompting", 1, "Useful, but not enough for the platform bottleneck."],
+            ["Use AI only for admin tasks", 0, "That avoids the value potential."]
+          ]
+        }
+      },
+      G: {
+        id: "governance",
+        name: "Governance Officer",
+        badge: "Policy",
+        color: "#365a4b",
+        pages: [
+          "Responsible AI is not decoration. It is a scale enabler.",
+          "AI risk crosses legal, compliance, cybersecurity, privacy, data governance, quality, communications, and business strategy.",
+          "A good AI Office can be comprehensive or lean. The key is repeatable approval and clear ownership."
+        ],
+        challenge: {
+          prompt: "Case: legal, risk, and security block rollout because nobody owns approval. Diagnosis?",
+          options: [
+            ["Policy and governance gap", 2, "Correct. This is a responsible AI scaling problem."],
+            ["Need more pilots", 0, "No. The bottleneck is approval and control."],
+            ["Only data scientists should decide", 0, "No. The lecture stresses cross-functional governance."],
+            ["Ship quietly", 0, "Bad. That creates risk."]
+          ]
+        }
+      },
+      A: {
+        id: "agents",
+        name: "Agent Builder",
+        badge: "Agents",
+        color: "#5b4f78",
+        pages: [
+          "Agent Workshop teaches the shift from prompting to delegating.",
+          "A chatbot answers. An agent can use tools, follow workflow steps, take approved actions, and operate across systems.",
+          "Agentic AI is broader: coordinated agents and workflows that execute cross-functional tasks."
+        ],
+        challenge: {
+          prompt: "Case: the team thinks better prompt templates are the final goal. What do you tell them?",
+          options: [
+            ["Correct, prompting is the endpoint", 0, "No. The lecture moves beyond prompting."],
+            ["The next step is delegation: agents with tools, context, workflow, and approvals", 2, "Correct."],
+            ["Agents never need process design", 0, "No. Workflows must be designed."],
+            ["Remove human judgment entirely", 0, "No. Human direction and approvals still matter."]
+          ]
+        }
+      },
+      T: {
+        id: "talent",
+        name: "Talent Researcher",
+        badge: "Skills",
+        color: "#735c2c",
+        pages: [
+          "Talent Garden is about cognitive offloading and skill erosion.",
+          "AI can improve short-term output while weakening unaided recall or skill if users delegate too much.",
+          "Better learning uses future-self, contrastive, and guided prompts. Make the brain work before the AI gives the answer."
+        ],
+        challenge: {
+          prompt: "Case: students get good AI-written homework but cannot explain concepts later. Best fix?",
+          options: [
+            ["Make AI give final answers faster", 0, "That increases dependency."],
+            ["Force articulation, contrastive questions, and guided hints before final answers", 2, "Correct. This limits skill erosion."],
+            ["Trust confidence as proof of learning", 0, "No. Confidence can be miscalibrated."],
+            ["Only memorize slide titles", 0, "Not enough."]
+          ]
+        }
+      },
+      E: {
+        id: "exam",
+        name: "Exam Gate",
+        badge: "Exam Gate",
+        color: "#8d345a",
+        pages: [
+          "This is the exam gate. It opens when you collect the core badges.",
+          "Final recall: value equals strategy, platform, governance, people adoption, process redesign, and measurable impact.",
+          "If you can explain that in your own words, the lectures start to click."
+        ],
+        challenge: {
+          prompt: "Final case: choose the best one-sentence thesis for VL1-VL3.",
+          options: [
+            ["AI value mainly comes from bigger models", 0, "Too narrow."],
+            ["AI value comes from aligning ambition, potential, platform, operating model, people, and policy into measurable business impact", 2, "Correct. That is the course backbone."],
+            ["Governance slows value and should be avoided", 0, "No. Governance enables scale."],
+            ["AI learning is safe as long as output quality is high", 0, "No. Skill erosion can hide behind good output."]
+          ]
+        }
+      },
+      F: {
+        id: "frontier",
+        name: "Frontier Coach",
+        badge: "Frontier",
+        color: "#315f70",
+        pages: [
+          "Frontier Tower teaches the Microsoft transformation logic.",
+          "Fragmented AI initiatives create limited impact. Structured transformation accelerates value.",
+          "Five drivers: Business Strategy, Technology & Data Strategy, AI Strategy & Experience, Organization & Culture, AI Governance & Security."
+        ],
+        challenge: {
+          prompt: "Case: a firm has Copilot licenses and agents, but each unit works separately. Best next step?",
+          options: [
+            ["Buy more licenses and wait", 0, "Licenses alone do not transform work."],
+            ["Create a structured roadmap/CoE across strategy, data, experience, culture, and governance", 2, "Correct. This connects the five drivers."],
+            ["Let every unit invent standards", 0, "That preserves fragmentation."],
+            ["Focus only on customer chatbots", 0, "Too narrow."]
+          ]
+        }
+      }
+    };
+
+    function persist() {
+      localStorage.setItem("aiValueCampusSave", JSON.stringify({
+        x: player.x,
+        y: player.y,
+        xp: save.xp,
+        badges: save.badges,
+        talked: save.talked
+      }));
+      renderSide();
+    }
+
+    function renderSide() {
+      xpEl.textContent = `XP ${save.xp}`;
+      const all = ["Framework", "Platform", "Policy", "Agents", "Skills", "Frontier", "Exam Gate"];
+      badgesEl.innerHTML = all.map(b => `<span class="badge ${save.badges[b] ? "done" : ""}">${save.badges[b] ? "✓ " : ""}${b}</span>`).join("");
+    }
+
+    function drawTile(x, y, ch) {
+      const px = x * tile;
+      const py = y * tile;
+      if (ch === "#") {
+        ctx.fillStyle = "#263d21";
+        ctx.fillRect(px, py, tile, tile);
+        ctx.fillStyle = "#385a2b";
+        ctx.fillRect(px + 4, py + 4, tile - 8, tile - 8);
+        return;
+      }
+      ctx.fillStyle = ((x + y) % 2) ? "#8dae4e" : "#93b654";
+      ctx.fillRect(px, py, tile, tile);
+      ctx.fillStyle = "#789b42";
+      ctx.fillRect(px + 15, py + 15, 10, 10);
+
+      if (ch === ".") return;
+      const npc = npcs[ch];
+      if (!npc) return;
+      ctx.fillStyle = "#c4d274";
+      ctx.fillRect(px + 5, py + 4, tile - 10, tile - 8);
+      ctx.fillStyle = npc.color;
+      ctx.fillRect(px + 12, py + 8, 16, 10);
+      ctx.fillRect(px + 9, py + 18, 22, 14);
+      ctx.fillRect(px + 7, py + 22, 6, 10);
+      ctx.fillRect(px + 27, py + 22, 6, 10);
+      ctx.fillStyle = "#f2efca";
+      ctx.fillRect(px + 14, py + 11, 3, 3);
+      ctx.fillRect(px + 23, py + 11, 3, 3);
+      ctx.fillStyle = "#152313";
+      ctx.font = "bold 10px monospace";
+      ctx.fillText(ch, px + 17, py + 36);
+    }
+
+    function drawPlayer() {
+      const px = player.x * tile;
+      const py = player.y * tile;
+      ctx.fillStyle = "#f2efca";
+      ctx.fillRect(px + 10, py + 5, 20, 10);
+      ctx.fillStyle = "#8d345a";
+      ctx.fillRect(px + 8, py + 15, 24, 16);
+      ctx.fillStyle = "#152313";
+      ctx.fillRect(px + 12, py + 31, 6, 6);
+      ctx.fillRect(px + 22, py + 31, 6, 6);
+      ctx.fillStyle = "#152313";
+      ctx.fillRect(px + 15, py + 9, 3, 3);
+      ctx.fillRect(px + 23, py + 9, 3, 3);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < map.length; y++) {
+        for (let x = 0; x < map[y].length; x++) drawTile(x, y, map[y][x]);
+      }
+      drawPlayer();
+      requestAnimationFrame(draw);
+    }
+
+    function isWalkable(x, y) {
+      if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return false;
+      return map[y][x] !== "#";
+    }
+
+    function move(dx, dy, face) {
+      if (dialogOpen) return;
+      player.face = face;
+      const nx = player.x + dx;
+      const ny = player.y + dy;
+      if (isWalkable(nx, ny)) {
+        player.x = nx;
+        player.y = ny;
+        persist();
+        updateNearby();
+      }
+    }
+
+    function nearbyNpc() {
+      const dirs = [[0,0], [0,-1], [0,1], [-1,0], [1,0]];
+      for (const [dx, dy] of dirs) {
+        const ch = map[player.y + dy]?.[player.x + dx];
+        if (npcs[ch]) return npcs[ch];
+      }
+      return null;
+    }
+
+    function updateNearby() {
+      const npc = nearbyNpc();
+      if (npc) {
+        toast.textContent = `Talk: ${npc.name}`;
+        toast.classList.add("show");
+        hint.textContent = `Press E / Space to talk to ${npc.name}.`;
+      } else {
+        toast.classList.remove("show");
+        hint.textContent = "Explore the campus and talk to the NPCs. Start with Strategy Hall if you are lost.";
+      }
+    }
+
+    function talk() {
+      if (dialogOpen) {
+        nextDialog();
+        return;
+      }
+      activeNpc = nearbyNpc();
+      if (!activeNpc) return;
+      dialogOpen = true;
+      dialogPage = 0;
+      showPage();
+    }
+
+    function showPage() {
+      dialog.classList.add("show");
+      speaker.textContent = activeNpc.name;
+      choices.innerHTML = "";
+      if (dialogPage < activeNpc.pages.length) {
+        dialogText.textContent = activeNpc.pages[dialogPage];
+        choices.innerHTML = `<button onclick="nextDialog()">Continue</button>`;
+      } else {
+        if (activeNpc.id === "exam") {
+          const needed = ["Framework", "Platform", "Policy", "Agents", "Skills", "Frontier"];
+          const missing = needed.filter(b => !save.badges[b]);
+          if (missing.length) {
+            dialogText.textContent = `Gate locked. Collect these badges first: ${missing.join(", ")}.`;
+            choices.innerHTML = `<button onclick="closeDialog()">Back to Campus</button>`;
+            return;
+          }
+        }
+        dialogText.textContent = activeNpc.challenge.prompt;
+        choices.innerHTML = activeNpc.challenge.options.map((o, i) => `<button onclick="answerChallenge(${i})">${o[0]}</button>`).join("");
+      }
+    }
+
+    function nextDialog() {
+      dialogPage++;
+      showPage();
+    }
+
+    function answerChallenge(i) {
+      const option = activeNpc.challenge.options[i];
+      const points = option[1];
+      save.xp += points ? 25 : 5;
+      if (points) {
+        save.badges[activeNpc.badge] = true;
+        save.talked[activeNpc.id] = true;
+      }
+      dialogText.innerHTML = `${points ? "Correct." : "Not quite."} ${option[2]}<br><br>${points ? "Badge earned: " + activeNpc.badge : "Try this NPC again after thinking about the lesson."}`;
+      choices.innerHTML = `<button onclick="closeDialog()">Close</button>`;
+      persist();
+    }
+
+    function closeDialog() {
+      dialogOpen = false;
+      activeNpc = null;
+      dialog.classList.remove("show");
+      updateNearby();
+    }
+
+    window.nextDialog = nextDialog;
+    window.answerChallenge = answerChallenge;
+    window.closeDialog = closeDialog;
+
+    document.addEventListener("keydown", e => {
+      const k = e.key.toLowerCase();
+      if (k === "arrowup" || k === "w") move(0, -1, "up");
+      if (k === "arrowdown" || k === "s") move(0, 1, "down");
+      if (k === "arrowleft" || k === "a") move(-1, 0, "left");
+      if (k === "arrowright" || k === "d") move(1, 0, "right");
+      if (k === " " || k === "e" || k === "enter") talk();
+      if (k === "escape" && dialogOpen) closeDialog();
+    });
+
+    document.querySelectorAll("[data-move]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const dir = btn.dataset.move;
+        if (dir === "up") move(0, -1, "up");
+        if (dir === "down") move(0, 1, "down");
+        if (dir === "left") move(-1, 0, "left");
+        if (dir === "right") move(1, 0, "right");
+      });
+    });
+    document.getElementById("talkBtn").addEventListener("click", talk);
+
+    renderSide();
+    updateNearby();
+    draw();
+  </script>
+</body>
+</html>
